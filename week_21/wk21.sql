@@ -53,3 +53,4 @@ with hero_powers_clean as (
     from hero_powers
 )
 select hero_name, upper(main_superpower) as main_superpower, upper(secondary_superpower)
+from hero_powers_clean;
