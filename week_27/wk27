@@ -17,4 +17,6 @@ insert into exercises.frosty_friday.week27 values
     (3, 'chocolate', 'ChoccyCream', 'Ice Co.', 'Food Brand Inc.', 'normal', 'Midwest', 8.99, 5.5);
 
 select *
-from week
+exclude milktype
+rename (icecreambrandowner as ice_cream_brand_owner)
+from week27;
