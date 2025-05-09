@@ -34,3 +34,5 @@ create or replace function wk38_function()
     where r.r_name = 'EUROPE'
     $$ 
     ;
+
+select wk38_function();
