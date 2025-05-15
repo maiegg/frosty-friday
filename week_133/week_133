@@ -1,0 +1,77 @@
+-- Create table
+CREATE OR REPLACE TABLE orders (
+    order_id NUMBER AUTOINCREMENT,
+    mathematician_name STRING,
+    pie_type STRING,
+    price FLOAT
+);
+
+-- Create procedure for uploading with parameters
+CREATE OR REPLACE PROCEDURE insert_pie_order(
+    name STRING,
+    pie STRING,
+    price FLOAT
+)
+RETURNS STRING
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    INSERT INTO orders (mathematician_name, pie_type, price)
+    VALUES (:name, :pie, :price);
+    
+    RETURN 'Success';
+END;
+$$;
+
+-- This is synchronous:
+CALL insert_pie_order('Erdos','hungary4pie', 1.619);
+CALL insert_pie_order('Georg Cantor' ,'Infinite Layer Pie', 17.77);
+
+
+-- How to do async?
+-- Following this: https://www.snowflake.com/en/engineering-blog/sql-stored-procedures-async-execution/
+
+-- How to do async?
+-- Following this: https://www.snowflake.com/en/engineering-blog/sql-stored-procedures-async-execution/
+CREATE OR REPLACE PROCEDURE async_pie_time()
+RETURNS STRING
+LANGUAGE SQL
+AS
+BEGIN
+    
+    LET total INTEGER := 0;
+
+        -- fire child jobs to ascynchronoulsy insert into target_table -- 
+    ASYNC (
+        INSERT INTO ORDERS(mathematician_name, pie_type, price) 
+        VALUES ('Erdos','hungary4pie', 1.619)
+    ); 
+    total := total + 1;
+
+    ASYNC (
+        INSERT INTO ORDERS(mathematician_name, pie_type, price)
+        VALUES ('Georg Cantor' ,'Infinite Layer Pie', 17.77)
+    ); 
+    total := total + 1;
+    
+
+    -- Ensures all insertions finish before returning ---
+    AWAIT ALL;
+
+    RETURN 'Done, INSERTED: ' || total;
+END;
+
+CALL async_pie_time();
+
+
+
+CALL asynch_pie_time(
+  ARRAY_CONSTRUCT(
+    OBJECT_CONSTRUCT('name', 'Pierre-Simon Laplace', 'pie', 'Banana Cream Pie', 'price', 12.25),
+    OBJECT_CONSTRUCT('name', 'Blaise Pascal', 'pie', 'Lemon Meringue Pie', 'price', 11.99),
+    OBJECT_CONSTRUCT('name', 'Hypatia', 'pie', 'Key Lime Pie', 'price', 10.75),
+    OBJECT_CONSTRUCT('name', 'John von Neumann', 'pie', 'Pear Pie', 'price', 13.99),
+    OBJECT_CONSTRUCT('name', 'Joseph Fourier', 'pie', 'Apricot Pie', 'price', 14.25)
+  )
+);
