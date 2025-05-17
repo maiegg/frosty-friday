@@ -31,9 +31,6 @@ CALL insert_pie_order('Georg Cantor' ,'Infinite Layer Pie', 17.77);
 
 -- How to do async?
 -- Following this: https://www.snowflake.com/en/engineering-blog/sql-stored-procedures-async-execution/
-
--- How to do async?
--- Following this: https://www.snowflake.com/en/engineering-blog/sql-stored-procedures-async-execution/
 CREATE OR REPLACE PROCEDURE async_pie_time()
 RETURNS STRING
 LANGUAGE SQL
@@ -65,13 +62,63 @@ END;
 CALL async_pie_time();
 
 
-
-CALL asynch_pie_time(
-  ARRAY_CONSTRUCT(
-    OBJECT_CONSTRUCT('name', 'Pierre-Simon Laplace', 'pie', 'Banana Cream Pie', 'price', 12.25),
-    OBJECT_CONSTRUCT('name', 'Blaise Pascal', 'pie', 'Lemon Meringue Pie', 'price', 11.99),
-    OBJECT_CONSTRUCT('name', 'Hypatia', 'pie', 'Key Lime Pie', 'price', 10.75),
-    OBJECT_CONSTRUCT('name', 'John von Neumann', 'pie', 'Pear Pie', 'price', 13.99),
-    OBJECT_CONSTRUCT('name', 'Joseph Fourier', 'pie', 'Apricot Pie', 'price', 14.25)
+-- What if each batch of orders exists in a table?
+-- Suppose we have a table loaded from JSON of these 3-tuples where each row is an object with named keys
+create or replace table wk133_json as 
+SELECT 
+  value as raw_json
+FROM TABLE(
+  FLATTEN(
+    ARRAY_CONSTRUCT(
+      OBJECT_CONSTRUCT('mathematician_name', 'Pierre-Simon Laplace', 'pie_type', 'Banana Cream Pie', 'price', 12.25),
+      OBJECT_CONSTRUCT('mathematician_name', 'Blaise Pascal', 'pie_type', 'Lemon Meringue Pie', 'price', 11.99),
+      OBJECT_CONSTRUCT('mathematician_name', 'Hypatia', 'pie_type', 'Key Lime Pie', 'price', 10.75),
+      OBJECT_CONSTRUCT('mathematician_name', 'John von Neumann', 'pie_type', 'Pear Pie', 'price', 13.99),
+      OBJECT_CONSTRUCT('mathematician_name', 'Joseph Fourier', 'pie_type', 'Apricot Pie', 'price', 14.25)
+    )
   )
 );
+
+-- to load each row asynchronously:
+
+CREATE OR REPLACE PROCEDURE async_pie_time()
+RETURNS STRING
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('snowflake-snowpark-python')
+HANDLER = 'run'
+AS
+$$
+import json
+from snowflake.snowpark import Session
+
+def run(session: Session) -> str:
+    total = 0
+
+    # Read the raw_json column from the input table
+    df = session.table("wk133_json").select("raw_json")
+    rows = df.collect()
+
+    for row in rows:
+        try:
+            data = json.loads(row["RAW_JSON"])
+            name = data["mathematician_name"]
+            pie = data["pie_type"]
+            price = data["price"]
+
+            # Insert into ORDERS table
+            session.sql(f"""
+                INSERT INTO ORDERS(mathematician_name, pie_type, price)
+                VALUES ('{name}', '{pie}', {price})
+            """).collect()
+
+            total += 1
+        except Exception as e:
+            # Optionally log or raise error
+            raise Exception(f"Error processing row {row['RAW_JSON']}: {e}")
+
+    return f"Done, INSERTED: {total}"
+$$;
+
+
+call async_pie_time();
