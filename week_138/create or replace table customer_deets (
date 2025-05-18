@@ -1,0 +1,30 @@
+-- Create a sample table with a mix of NULL and non-NULL values.
+create or replace table wk138 (
+    id int,
+    name string,
+    email string
+);
+
+insert into wk138 values
+    (1, 'Jeff Jeffy', null),
+    (2, 'Kyle Knight', 'kyleisdabest@hotmail.com'),
+    (3, 'Spring Hall', 'hall.yay@gmail.com'),
+    (4, 'Dr Holly Ray', 'drdr@yahoo.com');
+
+
+-- Set the DEFAULT_NULL_ORDERING parameter to both ‘FIRST’ and ‘LAST’ in your session.
+-- Observe the ordering of NULLs in your query results under different settings.
+ALTER SESSION SET DEFAULT_NULL_ORDERING = 'FIRST';
+select * from wk138 order by email;
+
+ALTER SESSION SET DEFAULT_NULL_ORDERING = 'LAST';
+select * from wk138 order by email;
+
+
+-- Override the default behavior using explicit NULLS FIRST or NULLS LAST in your ORDER BY clause.
+select * from wk138 order by email nulls first;
+
+-- Bonus: Retrieve the current setting of DEFAULT_NULL_ORDERING using a SQL query.
+SHOW PARAMETERS LIKE 'DEFAULT_NULL_ORDERING';
+
+ALTER SESSION UNSET DEFAULT_NULL_ORDERING;
