@@ -57,7 +57,7 @@ from seed_packs;
 select gardener, MY_UDF(**seeds) from seed_packs;
 
 
--- real life solution:
+-- real life solution (not what challenge asks)
 SELECT gardener, seeds, SUM(f.value::FLOAT) AS array_sum
 FROM seed_packs,
      LATERAL FLATTEN(input => seeds) f
